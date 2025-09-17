@@ -3,7 +3,7 @@
 [Description]
 
 ## Group Members
-- **John Doe**: jd19@fsu.edu
+- **Lucas Stone**: las23@fsu.edu
 - **Jane Smith**: js19@fsu.edu
 - **Alex Brown**: ab19@fsu.edu
 ## Division of Labor
@@ -116,10 +116,10 @@ Each member records their contributions here.
 ## Meetings
 Document in-person meetings, their purpose, and what was discussed.
 
-| Date       | Attendees            | Topics Discussed | Outcomes / Decisions |
-|------------|----------------------|------------------|-----------------------|
-| YYYY-MM-DD | [Names]              | [Agenda items]   | [Actions/Next steps]  |
-| YYYY-MM-DD | [Names]              | [Agenda items]   | [Actions/Next steps]  |
+| Date       | Attendees                                 | Topics Discussed | Outcomes / Decisions |
+|------------|-------------------------------------------|------------------|-----------------------|
+| 2025-09-17 | Lucas Stone, Jackson Knight, Brendan Womer| [Agenda items]   | [Actions/Next steps]  |
+| YYYY-MM-DD | Lucas Stone, Jackson Knight, Brendan Womer| [Agenda items]   | [Actions/Next steps]  |
 
 
 
