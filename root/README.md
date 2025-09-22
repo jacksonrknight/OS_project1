@@ -89,11 +89,11 @@ Each member records their contributions here.
 
 ### [Member 1]
 
-| Date       | Work Completed / Notes |
-|------------|------------------------|
-| YYYY-MM-DD | [Description of task]  |
-| YYYY-MM-DD | [Description of task]  |
-| YYYY-MM-DD | [Description of task]  |
+| Date       | Work Completed / Notes                               |
+|------------|------------------------------------------------------|
+| 2025-09-22 | setting up file structure and begin part 1           |
+| YYYY-MM-DD | [Description of task]                                |
+| YYYY-MM-DD | [Description of task]                                |
 
 ### [Member 2]
 
@@ -116,10 +116,10 @@ Each member records their contributions here.
 ## Meetings
 Document in-person meetings, their purpose, and what was discussed.
 
-| Date       | Attendees            | Topics Discussed | Outcomes / Decisions |
-|------------|----------------------|------------------|-----------------------|
-| YYYY-MM-DD | [Names]              | [Agenda items]   | [Actions/Next steps]  |
-| YYYY-MM-DD | [Names]              | [Agenda items]   | [Actions/Next steps]  |
+| Date       | Attendees            | Topics Discussed              | Outcomes / Decisions                                  |
+|------------|----------------------|-------------------------------|-------------------------------------------------------|
+| 2025-09-17 | everyone             | getting a solid gameplan      | repo setup and brendan will start on the first steps  |
+| YYYY-MM-DD | [Names]              | [Agenda items]                | [Actions/Next steps]                                  |
 
 
 
