@@ -61,6 +61,29 @@ void execute_command(tokenlist *tokens) {
     }
 }
 
+char *expand_env_var(char *token) {
+    if (token[0] == '$'){
+        char *env_value = getenv(token + 1);
+        if (env_value) {
+            return strdup(env_value);
+        }
+        return strdup(""); //return empty if not found
+    }
+    return strdup(token); // return og if not start w a $
+}
+
+tokenlist *expand_env_vars(tokenlist *original){
+    tokenlist *expanded = new_tokenlist();
+
+    for(int i = 0; i < original->size; i++){
+        char *expanded_token = expand_env_var(original->items[i]);
+        add_token(expanded, expanded_token);
+        free(expanded_token);    
+    }
+
+    return expanded;
+}
+
 int main() {
     printf("shell starting\n");
     
