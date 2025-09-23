@@ -39,35 +39,37 @@ passing in a tokenlist(tokenization of the user input) will handle parts 2 and 3
 bool expandTokens(tokenlist* tokens)
 {
     bool result = true;    // will be used as a return
-    char* homePath[strlen(getenv('~'))];    // temp str to store the current home path ('~' expanded)
-    strcpy(homePath, getenv('~'));          // using getenv(), copy the home path from the '~' to homePath variable
+    const char* homePath = getenv("HOME");    // temp str to store the current home path ('~' expanded)
 
     // iteratively expand variables 
     for (int i = 0; i < tokens->size; i++)
     {
+        // add a temporary variable to store the current token
+        char* currentToken = tokens->items[i]; 
+        char* expandedToken;
+
         // if a '$' is found inside the current token
-        if (strchr(tokens->items[i], '$') != NULL) 
+        if (strchr(currentToken, '$') != NULL) 
         {
-            strcpy(tokens->items[i], getenv(tokens->items[i]));     // replace variable token with it's expanded form
+            strcpy(currentToken, getenv(currentToken) );     // replace variable token with it's expanded form
         }
-        // if a '~' is found...
-        // if (strchr(tokens->items[i], '~') != NULL && )
-        if ( (tokens->items[i])[0] == '~' && ( (tokens->items[i])[1] == '/' || (tokens->items[i])[1] == '\n' ) )
+        // if a '~' is found and matches the requirements...
+        if ( currentToken[0] == '~' && ( currentToken[1] == '/' || currentToken[1] == '\n' ) )
         {
             // start by creating a new string to hold the expanded path
-            char* expandedPath[ strlen(homePath) + strlen(tokens->items[i]) - 1 ];
             // copy the expanded homepath into expandedPath
-            strcpy(expandedPath, homePath);     
+            strcpy(expandedToken, homePath);     
 
             // if the token length is more than 2 (i.e it is not a lone '~') ...
-            if (strlen(tokens->items[i]) > 1)
-                strcat(expandedPath, (tokens->items[i])+1);     // concatenate the remaining original string excluding the '~' element
+            if (strlen(currentToken) > 1)
+                strcat(expandedToken, (currentToken)+1);     // concatenate the remaining original string excluding the '~' element
         } 
 
-        // this will be a catch case to see if any tokens are "ruined" in the function
-        if (strlen(tokens->items[i]) == 0 || tokens->items[i] == NULL)
+        // this will be a catch case to see if any tokens are "ruined" in the function.
+        // if a token is empty or == NULL
+        if (strlen(expandedToken) == 0 || expandedToken == NULL)
         {
-            printf("ERROR in expandTokens(): i=%d, tokens->items[i]=%s, strlen()=%d", i, (tokens->items[i]), strlen(tokens->items[i]) );
+            printf("ERROR in expandTokens(): i=%d, tokens->items[i]=%s, strlen()=%d", i, (expandedToken), strlen(expandedToken) );
             result=false;
             break;
         }
