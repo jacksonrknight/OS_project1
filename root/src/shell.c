@@ -4,6 +4,8 @@
 #include <string.h>
 
 bool expandTokens(tokenlist* tokens);
+char* findPath(tokenlist* tokens)
+
 
 
 int main(int argc, char** argv)
@@ -23,7 +25,7 @@ int main(int argc, char** argv)
         free_tokens(input);
         count++;
     }
-    exit(0);*
+    exit(0);
 
 }
 
@@ -48,7 +50,7 @@ char* expandToken(const char* token)
         return strdup(token);
     }
 
-
+    // case of Variable found
     if (token[0] == '$') 
     {
         const char* varName = token+1;            // point to the value inside the string starting AFTER the '$'
@@ -62,7 +64,7 @@ char* expandToken(const char* token)
             return result;
         }
     }
-
+    // case of tilde used symbolically
     if ( token[0] == '~' && ( token[1] == '/' || token[1] == '\n' ) )
     {
         // error to handle issues with getenv() or missing env variables
@@ -79,74 +81,41 @@ char* expandToken(const char* token)
         return result;
 
     }
+    // case of command token that needs to be expanded.
 
+    // case other..
+    
     return strdup(token);   // cannot return a const, creates a dummy duplicate
+}
+
+/*
+char* findPath(char* token)
+accepts a token and returns an expanded path for the command (ls -> /usr/bin/ls)
+*****
+- check for slashes at start of token './' or '/'... if it does, don't search, just verify the path is valid.
+- if no slash, get the $PATH
+- tokenize the $PATH using strtok() using : as a delimiter
+- identify the token that matches corresponds with the command
+- check the final path 
+
+*/
+
+char* findPath(char* token)
+{
+    // - check for slashes at start of token './' or '/'... if it does, don't search, just verify the path is valid.
+
+    // - if no slash, get the $PATH
+    
+    // - tokenize the $PATH using strtok() using : as a delimiter
+    
+    // - identify the token that matches corresponds with the command
+    
+    // - check the final path 
+
+
 }
 
 
 
-
-
-// bool expandTokens(tokenlist* tokens)
-// {
-//     bool result = true;    // will be used as a return
-
-//     // iteratively expand variables 
-//     for (int i = 0; i < tokens->size; i++)
-//     {
-//         // add a temporary variable to store the current token
-//         char* currentToken = tokens->items[i]; 
-//         char* newToken;
-
-//         //--------- PT2 EXPANDING VARIABLES -------------
-//         // if a '$' is the beginning of the token, then it's treated as a variable to be expanded
-//         if (currentToken[0] == '$') 
-//         {
-//             char* varName = currentToken+1;            // point to the value inside the string starting AFTER the '$'
-//             char* variableValue = getenv(varName);     // the return value of getenv for the variableName just derived
-//             // if a valid expansion is found...
-//             if (variableValue != NULL)
-//             {
-//                 // declare and allocate a temp variable to store the new token who's size accounts for the difference in size accounting for the '$'.. (expanding with getenv() will make it smaller or larger)
-//                 char* tempToken = (char*)realloc(currentToken, strlen(variableValue)+1);
-//                 // point to the new memory location
-//                 tokens->items[i] = tempToken;
-//                 // copy the token into the tokenlist
-//                 strcpy(tokens->items[i], tempToken);
-//                 // update the newtoken
-//                 newToken = tokens->items[i];
-                
-//             }
-//             // strcpy(currentToken, getenv(variableName) );     // replace variable token with it's expanded form
-//         }
-
-
-//         //-------- PT3 EXPANDING TILDE -------------------
-//         // if a '~' is found and matches the requirements...
-//         if ( currentToken[0] == '~' && ( currentToken[1] == '/' || currentToken[1] == '\n' ) )
-//         {
-//             // start by creating a new string to hold the expanded path
-//             // copy the expanded homepath into expandedPath
-//             strcpy(newToken, homePath);     
-
-//             // if the token length is more than 2 (i.e it is not a lone '~') ...
-//             if (strlen(currentToken) > 1)
-//                 strcat(newToken, (currentToken)+1);     // concatenate the remaining original string excluding the '~' element
-//         } 
-
-//         // this will be a catch case to see if any tokens are "ruined" in the function.
-//         // if a token is empty or == NULL
-//         if (strlen(newToken) == 0 || newToken == NULL)
-//         {
-//             printf("ERROR in expandTokens(): i=%d, tokens->items[i]=%s, strlen()=%d", i, (newToken), strlen(newToken) );
-//             result=false;
-//             break;
-//         }
-//     }
-
-
-//     // return T/F
-//     return result;
-// }
 
 
