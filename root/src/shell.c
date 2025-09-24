@@ -24,14 +24,22 @@ int main(int argc, char** argv)
         // read and user's input
         printTokenlist(input);
 
+        // grab the command(item[0]) from user input
         char* commandPath = findPath(input->items[0]);
+
+        // if a command path doesn't exist, free the input to prepare for next loop
         if (input->items[0] == NULL)
         {
-            findPath(input->items[0]);
+            free_tokens(input);
+            continue;   // then jump to next loop
         }
-        // execute commands
 
+        
+        // execution logic
+
+        
         // printf("\n-----BEFORE FREE_TOKENS----\nTOKENLIST&= %p\nsize=%lu\n-------------------\n", &input, input->size);
+        free(commandPath);
         free_tokens(input);
         // printf("\n-----AFTER FREE_TOKENS----\nTOKENLIST&= %p\nsize=%lu\n---------------------\n", &input, input->size);
 
