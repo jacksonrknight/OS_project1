@@ -36,48 +36,101 @@ passing in a tokenlist(tokenization of the user input) will handle parts 2 and 3
 - will expand token tilde's symbolic representation (~)->(/home/username), (~/path/of/folders)->(/home/username/path/of/folders)
 - NOTE: PROJECT DOES NOT SAY HOW TO HANDLE EXPANDING VARIABLES THAT DON'T EXIST. NULL IS RETURNED, BUT IM NOT ENTIRELY SURE IF THEY WANT AN ERROR OR TO JUST IGNORE THE NULL RETURN AND CONTINUE RUNNING--DESPITE MOST LIKELY BREAKING THE FUNCTIONALITY.
 */
-bool expandTokens(tokenlist* tokens)
+char* expandToken(const char* token)
 {
-    bool result = true;    // will be used as a return
-    const char* homePath = getenv("HOME");    // temp str to store the current home path ('~' expanded)
+    char* result = NULL;    // will be the expanded string that is returned
+    const char* homePath = getenv("HOME");      // temp str to store the current home path ('~' expanded)
 
-    // iteratively expand variables 
-    for (int i = 0; i < tokens->size; i++)
+    if (token[0] == '$') 
     {
-        // add a temporary variable to store the current token
-        char* currentToken = tokens->items[i]; 
-        char* expandedToken;
-
-        // if a '$' is found inside the current token
-        if (strchr(currentToken, '$') != NULL) 
+        const char* varName = token+1;            // point to the value inside the string starting AFTER the '$'
+        const char* variableValue = getenv(varName);     // the expanded value of varName
+        // if a valid expansion is found...
+        if (variableValue != NULL)
         {
-            strcpy(currentToken, getenv(currentToken) );     // replace variable token with it's expanded form
-        }
-        // if a '~' is found and matches the requirements...
-        if ( currentToken[0] == '~' && ( currentToken[1] == '/' || currentToken[1] == '\n' ) )
-        {
-            // start by creating a new string to hold the expanded path
-            // copy the expanded homepath into expandedPath
-            strcpy(expandedToken, homePath);     
-
-            // if the token length is more than 2 (i.e it is not a lone '~') ...
-            if (strlen(currentToken) > 1)
-                strcat(expandedToken, (currentToken)+1);     // concatenate the remaining original string excluding the '~' element
-        } 
-
-        // this will be a catch case to see if any tokens are "ruined" in the function.
-        // if a token is empty or == NULL
-        if (strlen(expandedToken) == 0 || expandedToken == NULL)
-        {
-            printf("ERROR in expandTokens(): i=%d, tokens->items[i]=%s, strlen()=%d", i, (expandedToken), strlen(expandedToken) );
-            result=false;
-            break;
+            // realloc the size of result, who's size accounts for the difference in size accounting for the '$'.. (expanding with getenv() will make it smaller or larger)
+            result = (char*)realloc(result, strlen(variableValue)+1);
+            strcpy(result, variableValue);
+            return result;
         }
     }
 
+    if ( token[0] == '~' && ( token[1] == '/' || token[1] == '\n' ) )
+    {
+        // will be filled in
 
-    // return T/F
-    return result;
+
+    }
+
+    if (result != NULL)
+        return result;
+    return token;
 }
+
+
+
+
+
+// bool expandTokens(tokenlist* tokens)
+// {
+//     bool result = true;    // will be used as a return
+
+//     // iteratively expand variables 
+//     for (int i = 0; i < tokens->size; i++)
+//     {
+//         // add a temporary variable to store the current token
+//         char* currentToken = tokens->items[i]; 
+//         char* newToken;
+
+//         //--------- PT2 EXPANDING VARIABLES -------------
+//         // if a '$' is the beginning of the token, then it's treated as a variable to be expanded
+//         if (currentToken[0] == '$') 
+//         {
+//             char* varName = currentToken+1;            // point to the value inside the string starting AFTER the '$'
+//             char* variableValue = getenv(varName);     // the return value of getenv for the variableName just derived
+//             // if a valid expansion is found...
+//             if (variableValue != NULL)
+//             {
+//                 // declare and allocate a temp variable to store the new token who's size accounts for the difference in size accounting for the '$'.. (expanding with getenv() will make it smaller or larger)
+//                 char* tempToken = (char*)realloc(currentToken, strlen(variableValue)+1);
+//                 // point to the new memory location
+//                 tokens->items[i] = tempToken;
+//                 // copy the token into the tokenlist
+//                 strcpy(tokens->items[i], tempToken);
+//                 // update the newtoken
+//                 newToken = tokens->items[i];
+                
+//             }
+//             // strcpy(currentToken, getenv(variableName) );     // replace variable token with it's expanded form
+//         }
+
+
+//         //-------- PT3 EXPANDING TILDE -------------------
+//         // if a '~' is found and matches the requirements...
+//         if ( currentToken[0] == '~' && ( currentToken[1] == '/' || currentToken[1] == '\n' ) )
+//         {
+//             // start by creating a new string to hold the expanded path
+//             // copy the expanded homepath into expandedPath
+//             strcpy(newToken, homePath);     
+
+//             // if the token length is more than 2 (i.e it is not a lone '~') ...
+//             if (strlen(currentToken) > 1)
+//                 strcat(newToken, (currentToken)+1);     // concatenate the remaining original string excluding the '~' element
+//         } 
+
+//         // this will be a catch case to see if any tokens are "ruined" in the function.
+//         // if a token is empty or == NULL
+//         if (strlen(newToken) == 0 || newToken == NULL)
+//         {
+//             printf("ERROR in expandTokens(): i=%d, tokens->items[i]=%s, strlen()=%d", i, (newToken), strlen(newToken) );
+//             result=false;
+//             break;
+//         }
+//     }
+
+
+//     // return T/F
+//     return result;
+// }
 
 
