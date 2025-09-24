@@ -41,6 +41,14 @@ char* expandToken(const char* token)
     char* result = NULL;    // will be the expanded string that is returned
     const char* homePath = getenv("HOME");      // temp str to store the current home path ('~' expanded)
 
+    // token validation at start if the token passed is NULL
+    if (token == NULL)
+    {
+        printf("ERROR expandToken(const char*): token argument is NULL\n");
+        return strdup(token);
+    }
+
+
     if (token[0] == '$') 
     {
         const char* varName = token+1;            // point to the value inside the string starting AFTER the '$'
@@ -57,14 +65,22 @@ char* expandToken(const char* token)
 
     if ( token[0] == '~' && ( token[1] == '/' || token[1] == '\n' ) )
     {
-        // will be filled in
-
+        // error to handle issues with getenv() or missing env variables
+        if (homePath == NULL)
+        {
+            printf("ERROR expandToken(const char*): homePath is NULL\n");
+            return result;
+        }
+        // realloc result to fit the original token (excluding the ~) and the expanded homePath + 1 for delimiter
+        result = (char*)realloc(result, ( strlen(homePath)+strlen(token+1)+1 ) );
+        // construct the final result
+        strcpy(result, homePath);  
+        strcat(result, token+1);
+        return result;
 
     }
 
-    if (result != NULL)
-        return result;
-    return token;
+    return strdup(token);   // cannot return a const, creates a dummy duplicate
 }
 
 
