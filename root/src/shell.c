@@ -4,7 +4,7 @@
 #include <string.h>
 
 bool expandTokens(tokenlist* tokens);
-char* findPath(tokenlist* tokens)
+// char* findPath(tokenlist* tokens);
 
 
 
@@ -100,20 +100,35 @@ accepts a token and returns an expanded path for the command (ls -> /usr/bin/ls)
 
 */
 
-char* findPath(char* token)
-{
-    // - check for slashes at start of token './' or '/'... if it does, don't search, just verify the path is valid.
+// char* findPath(char* token)
+// {
+//     // char* tempToken = NULL;
+//     // - check for slashes at start of token './' or '/'
+//     if (token[0] == '/' || ( token[0] == '.' && token[1] == '/' ) )
+//     {
 
-    // - if no slash, get the $PATH
+//     }
+//     // ... if it doesn't, don't search, just verify the path is valid
+//     char* expandedPath = getenv(token);
+//     if (expandedPath == NULL)
+//     {
+//         printf("ERROR in findPath(char*): non-path found, but returned NULL in getenv()\n");
+//         return NULL;
+//     }
     
-    // - tokenize the $PATH using strtok() using : as a delimiter
+//     // - if no slash and its not valid as-is, search $PATH
+//     else
+//     {
+//     // - tokenize the $PATH using strtok() using : as a delimiter
     
-    // - identify the token that matches corresponds with the command
+//     // - identify the token that matches corresponds with the command
+        
+//     }
     
-    // - check the final path 
+//     // - check the final path 
 
-
-}
+//     return token;
+// }
 
 
 
