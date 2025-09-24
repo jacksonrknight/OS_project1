@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-bool expandTokens(tokenlist* tokens);
+char* expandToken(const char* token);
 // char* findPath(tokenlist* tokens);
+void printTokenlist(tokenlist* tokens);
 
 
 
@@ -18,36 +19,58 @@ int main(int argc, char** argv)
         // print the shell's "prompt" using getenv() (format: USER@MACHINE:PWD>)
         printf("%s@%s:%s> \n", getenv("USER"), getenv("HOSTNAME"), getenv("PWD") );
         tokenlist* input = get_tokens(get_input());
+
         // read and user's input
+        printTokenlist(input);
 
         // execute commands
 
+        // printf("\n-----BEFORE FREE_TOKENS----\nTOKENLIST&= %p\nsize=%lu\n-------------------\n", &input, input->size);
         free_tokens(input);
+        // printf("\n-----AFTER FREE_TOKENS----\nTOKENLIST&= %p\nsize=%lu\n---------------------\n", &input, input->size);
+
         count++;
     }
     exit(0);
 
 }
 
+void printTokenlist(tokenlist* tokens)
+{
+    if (tokens->size > 0)
+    {
+        for (int i = 0; i < tokens->size; i++)
+        {
+            printf("--%i: %s\n",i, expandToken(tokens->items[i]));
+        }
+    }
+    else 
+        printf("ERROR in printTokenList()\n");
+    printf("\n");
+}
 
-/*
-expandTokens(tokenlist&)
+
+/* expandTokens(tokenlist&)
 *****
 passing in a tokenlist(tokenization of the user input) will handle parts 2 and 3
 - will expand token variable's symbolic representation ($USER)->(<username>), ($HOME)->(/home/username), ($SHELL)->(/bin/bash)
 - will expand token tilde's symbolic representation (~)->(/home/username), (~/path/of/folders)->(/home/username/path/of/folders)
 - NOTE: PROJECT DOES NOT SAY HOW TO HANDLE EXPANDING VARIABLES THAT DON'T EXIST. NULL IS RETURNED, BUT IM NOT ENTIRELY SURE IF THEY WANT AN ERROR OR TO JUST IGNORE THE NULL RETURN AND CONTINUE RUNNING--DESPITE MOST LIKELY BREAKING THE FUNCTIONALITY.
 */
-char* expandToken(const char* token)
+char* expandToken(const char* inputToken)
 {
+    size_t inputTokenLen = strlen(inputToken);
+    char* token = (char*)malloc(inputTokenLen+1);
+    strcpy(token, inputToken);
     char* result = NULL;    // will be the expanded string that is returned
-    const char* homePath = getenv("HOME");      // temp str to store the current home path ('~' expanded)
+    char* homePath = getenv("HOME");      // temp str to store the current home path ('~' expanded)
+    // printf("EXPANDTOKEN: token: %s\nstrlen(token):%ld\ninputTokenLen:%ld\n\n", token, strlen(token), inputTokenLen);
 
     // token validation at start if the token passed is NULL
     if (token == NULL)
     {
         printf("ERROR expandToken(const char*): token argument is NULL\n");
-        return strdup(token);
+        return NULL;
     }
 
     // case of Variable found
@@ -55,12 +78,17 @@ char* expandToken(const char* token)
     {
         const char* varName = token+1;            // point to the value inside the string starting AFTER the '$'
         const char* variableValue = getenv(varName);     // the expanded value of varName
+        size_t varValueLen = strlen(variableValue) +1;
+        // printf("\n----EXPANDTOKEN:\n token: %s \n variableValue: %s\n-------------------\n\n", token, variableValue);
+        
         // if a valid expansion is found...
         if (variableValue != NULL)
         {
             // realloc the size of result, who's size accounts for the difference in size accounting for the '$'.. (expanding with getenv() will make it smaller or larger)
-            result = (char*)realloc(result, strlen(variableValue)+1);
+            result = (char*)realloc(result, varValueLen);
             strcpy(result, variableValue);
+            // printf("\n----EXPANDTOKEN:\n token: %s \n variableValue: %s\n result: %s\n-----------------\n\n", token, variableValue, result);
+            free(token);
             return result;
         }
     }
@@ -78,6 +106,7 @@ char* expandToken(const char* token)
         // construct the final result
         strcpy(result, homePath);  
         strcat(result, token+1);
+        free(token);
         return result;
 
     }
@@ -85,11 +114,10 @@ char* expandToken(const char* token)
 
     // case other..
     
-    return strdup(token);   // cannot return a const, creates a dummy duplicate
+    return NULL;
 }
 
-/*
-char* findPath(char* token)
+/* char* findPath(char* token)
 accepts a token and returns an expanded path for the command (ls -> /usr/bin/ls)
 *****
 - check for slashes at start of token './' or '/'... if it does, don't search, just verify the path is valid.
