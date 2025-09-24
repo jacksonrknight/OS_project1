@@ -24,6 +24,11 @@ int main(int argc, char** argv)
         // read and user's input
         printTokenlist(input);
 
+        char* commandPath = findPath(input->items[0]);
+        if (input->items[0] == NULL)
+        {
+            findPath(input->items[0]);
+        }
         // execute commands
 
         // printf("\n-----BEFORE FREE_TOKENS----\nTOKENLIST&= %p\nsize=%lu\n-------------------\n", &input, input->size);
@@ -121,7 +126,13 @@ char* findPath(char* command)
     if (command[0] == '/' || ( command[0] == '.' && command[1] == '/' ) )
     {
         if (access(command, X_OK) == 0)
-            return strdup(command);
+        {
+            // create a copy that can be return
+            char* commandCopy = malloc(strlen(command)+ 1);
+            strcpy(commandCopy, command);
+            return commandCopy;
+
+        }
         return NULL;
     }
 
@@ -133,15 +144,37 @@ char* findPath(char* command)
         return NULL;
     }
 
-    // create a copy of $PATH
-    char* pathCopy = strdup(pathValue);
-    char* directory = strtok(pathCopy, ":");
+    // create a copy of $PATH and a temp variable to store each chunk of $PATH
+    char* pathCopy = malloc(strlen(pathValue)+1);
+    strcpy(pathCopy, pathValue);
     
-    // - tokenize the $PATH using strtok() using : as a delimiter
-    // - identify the token that matches corresponds with the command
+    // strdup(pathValue);
+    char* currDirectory = strtok(pathCopy, ":");
     
-    // - check the final path 
-    return command;
+    // while loop that will look at each chunk of $PATH until the command's exe is found or $PATH is fully searched.
+    while (currDirectory != NULL)
+    {
+        // reconstruct the path using the command so it can be checked-- testing each one is effectively searching
+        // '+ 2' is to account for '\0' and the '/' added when concatenating
+        char* fullPath = malloc(strlen(currDirectory) + strlen(command) + 2 );
+        
+        sprintf(fullPath, "%s/%s", currDirectory, command );    // construct full path to be tested
+        
+        // test path, returns fullpath if the command's path is found
+        if (access(fullPath, X_OK) == 0)
+        {
+            free(pathCopy);
+            return fullPath;
+        }
+
+        // before the next loop starts, free fullpath and grab the next chunk of $PATH
+        free(fullPath);
+        currDirectory = strtok(NULL, ":");
+    }
+
+    // case of nothing found, free up temp str and return NULL
+    free(pathCopy);
+    return NULL;
 }
 
 
