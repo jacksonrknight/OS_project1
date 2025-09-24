@@ -9,8 +9,8 @@
 
 #include "lexer.h" 
 
-#define MAX_JOBS 100 // max 10 in project req
-#define MAX_HISTORY 10
+#define MAX_JOBS 10 // max 10 in project req
+#define MAX_HISTORY 3
 
 typedef struct {
     int job_id;
@@ -43,7 +43,7 @@ tokenlist *expand_tildes(tokenlist *original);
 char *search_path(const char *cmd);
 
 //P5 ETC: COMMAND EXECUTIONS
-void execute_command(tokenlist *tokens);
+int execute_command(tokenlist *tokens);
 int handle_builtins(tokenlist *tokens);
 
 //P6: I/O REDIRECTION
@@ -70,7 +70,7 @@ void add_to_history(char *cmd_line);
 
 
 int main() {
-    printf("shell starting\n");
+    printf("Shell starting\n");
     
     while (1) {
         //check 4 completed jobs
@@ -86,11 +86,6 @@ int main() {
             break; // EXIT on EOF
         }
 
-        //save cmd to history if not empty
-        if(strlen(input) > 0) {
-            add_to_history(input);
-        }
-
         //get tokens from input
         tokenlist *tokens = get_tokens(input);
 
@@ -99,7 +94,16 @@ int main() {
 
         //then tildes
         tokenlist *tilde_expanded = expand_tildes(expanded_env);
-        execute_command(tilde_expanded);
+        
+        int command_status = execute_command(tilde_expanded);
+
+        if (command_status == 1) {
+            //valid add to history
+            add_to_history(input);
+        } else if (command_status == -1) {
+            //exit = -1 so break
+            break;
+        }
 
         //cleanup
         free_tokens(tokens);
@@ -325,10 +329,10 @@ void cleanup_jobs() {
 }
 
 //BIG EXECUTE COMMAND FUNCTION
-void execute_command(tokenlist *tokens) {
+int execute_command(tokenlist *tokens) {
     
     if(tokens == NULL || tokens->size == 0 || tokens->items[0] == NULL){
-        return;
+        return 0;
     }
 
     //check if background job
@@ -369,6 +373,7 @@ void execute_command(tokenlist *tokens) {
             }
             free(commands);
         }
+        return 1;
     } else {
         //handle regular command w redirections
         char *input_file = NULL;
@@ -381,16 +386,17 @@ void execute_command(tokenlist *tokens) {
             if (output_file) free(output_file);
             free_tokens(cmd_tokens);
             if (original_command) free(original_command);
-            return;
+            return 0;
         }
 
-        if(handle_builtins(cmd_tokens)) {
+        int builtin_status = handle_builtins(cmd_tokens);
+        if(builtin_status != 0) {
             //cleanup
             if (input_file) free(input_file);
             if (output_file) free(output_file);
             free_tokens(cmd_tokens);
             if (original_command) free(original_command);
-            return;
+            return builtin_status;
         }
 
         char *cmd_path = search_path(cmd_tokens->items[0]);
@@ -400,7 +406,7 @@ void execute_command(tokenlist *tokens) {
             if (output_file) free(output_file);
             free_tokens(cmd_tokens);
             if (original_command) free(original_command);
-            return;
+            return 0;
         }
 
         pid_t pid = fork();
@@ -413,7 +419,7 @@ void execute_command(tokenlist *tokens) {
             if (output_file) free(output_file);
             free_tokens(cmd_tokens);
             if (original_command) free(original_command);
-            return;
+            return 1; 
         } else if (pid == 0){
             //child!!
 
@@ -466,6 +472,7 @@ void execute_command(tokenlist *tokens) {
             free_tokens(cmd_tokens);
             if(original_command) free(original_command);
         }
+        return 1;
     }
 }
 
@@ -478,17 +485,30 @@ int handle_builtins(tokenlist *tokens) {
 
     if(strcmp(tokens->items[0], "exit") == 0) {
         //print last 3 valid commands
-        printf("Last commands:\n");
         if(history_count == 0){
-            printf("No commands in history\n");
+            printf("No valid commands in history\n");
+        } else if (history_count < 3){
+            printf("Last valid command in history:\n");
+            int start = history_count - 1;
+            printf("%s\n", command_history[start]);
         } else {
-            int start = (history_count > 3) ? history_count - 3 : 0;
+            printf("Last 3 valid commands in history:\n");
+            int start;
+            int num = 1;
+            if (history_count > 3) {
+                    start = history_count - 3;
+            } else {
+                start = 0;
+            }
             for(int i = start; i < history_count; i++){
-                printf("%d: %s\n", i + 1, command_history[i]);
+                printf("%d: %s\n", num, command_history[i]);
+                num++;
             }
         }
         //wait for all background processes to be complete
-        printf("Waiting for all background processes to finish.\n");
+        if(job_count > 0){
+            printf("Waiting for all background processes to finish.\n");
+        }
         for (int i = 0; i < job_count; i++) {
             if (!jobs[i].completed) {
                 printf("Waiting for [%d] %s\n", jobs[i].job_id, jobs[i].command_line);
@@ -496,9 +516,9 @@ int handle_builtins(tokenlist *tokens) {
             }
         }
 
-        printf("exiting shell\n");
+        printf("Exiting shell\n");
         exit(EXIT_SUCCESS);
-        return 1;
+        return -1;
     }
 
     //cd command
