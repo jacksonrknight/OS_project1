@@ -1,11 +1,12 @@
 # Shell
 
-[Description]
+Designed and developed a shell interface that supports input/output redirection, 
+    piping, background processing, and a set of built-in functions.
 
 ## Group Members
 - **Lucas Stone**: las23@fsu.edu
-- **Jane Smith**: js19@fsu.edu
-- **Alex Brown**: ab19@fsu.edu
+- **Jackson Knight**: fsu email
+- **Brandon Womer**: fsu email
 ## Division of Labor
 
 ### Part 1: Prompt
