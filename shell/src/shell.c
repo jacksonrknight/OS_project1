@@ -9,6 +9,10 @@
 
 #include "lexer.h" 
 
+//------------------------------------------------------------------------------
+//GLOBAL VARIABLES AND DEFINITIONS
+//------------------------------------------------------------------------------
+
 #define MAX_JOBS 10 // max 10 in project req
 #define MAX_HISTORY 3
 
@@ -26,7 +30,9 @@ int next_job_id = 1;
 char *command_history[MAX_HISTORY];
 int history_count = 0;
 
+//------------------------------------------------------------------------------
 //FUNCTION DECLARATIONS
+//------------------------------------------------------------------------------
 
 //P1:PRINT PROMPT
 void print_prompt();
@@ -68,6 +74,9 @@ char *build_pipeline_command_line(tokenlist **commands, int cmd_count);
 //COMMAND HISTORY
 void add_to_history(char *cmd_line);
 
+//------------------------------------------------------------------------------
+// MAIN LOOP
+//------------------------------------------------------------------------------
 
 int main() {
     printf("Shell starting\n");
@@ -118,8 +127,9 @@ int main() {
     
     return 0;
 }
-
+//------------------------------------------------------------------------------
 //PART 1 : PRINT PROMPT
+//------------------------------------------------------------------------------
 
 void print_prompt(){
     char hostname[256];
@@ -133,8 +143,102 @@ void print_prompt(){
     printf("%s@%s:%s> ", username, hostname, cwd);
     fflush(stdout);
 }
+//------------------------------------------------------------------------------
+//PART 2 : $ EXPANDED
+//------------------------------------------------------------------------------
 
+char *expand_env_var(char *token) {
+    if (token[0] == '$'){
+        char *env_value = getenv(token + 1);
+        if (env_value) {
+            return strdup(env_value);
+        }
+        return strdup(""); //return empty if not found
+    }
+    return strdup(token); // return og if not start w a $
+}
+
+tokenlist *expand_env_vars(tokenlist *original){
+    tokenlist *expanded = new_tokenlist();
+
+    for(int i = 0; i < original->size; i++){
+        char *expanded_token = expand_env_var(original->items[i]);
+        add_token(expanded, expanded_token);
+        free(expanded_token);    
+    }
+
+    return expanded;
+}
+
+//------------------------------------------------------------------------------
+//PART 3: TILDE EXPANSION
+//------------------------------------------------------------------------------
+
+char *expand_tilde(char *token){
+
+    if (token == NULL){
+        return NULL;
+    }
+
+    if(strcmp(token, "~") == 0 || strncmp(token, "~/", 2) == 0) {
+        //get HOME enviroment var
+        char *home = getenv("HOME");
+        if (home == NULL){
+            //return og token if home not set
+            return strdup(token);
+        }
+
+        if (strcmp(token, "~") == 0) {
+            //token is only ~ replace w home
+            return strdup(home);
+        } else {
+            //token starts w ~/ replace ~ w home thats it
+            // +1 to skip ~
+            char *path = token + 1;
+
+            char *result = malloc(strlen(home) + strlen(path) + 1);
+            if (result == NULL){
+                return NULL; //malloc failed
+            }
+
+            strcpy(result, home);
+            strcat(result, path);
+
+            return result;
+        }
+    }
+
+    return strdup(token); //no tilde to expand
+}
+
+tokenlist *expand_tildes(tokenlist *original) {
+    if (original == NULL) {
+        return NULL;
+    }
+
+    tokenlist *expanded = new_tokenlist();
+    if (expanded == NULL) {
+        return NULL;
+    }
+
+    for (int i = 0; i < original->size; i++) {
+        char *expanded_token = expand_tilde(original->items[i]);
+        if(expanded_token == NULL){
+            fprintf(stderr, "malloc fail in tilde expansion");
+            free_tokens(expanded);
+            return NULL;
+        }
+
+        add_token(expanded, expanded_token);
+        free(expanded_token);
+    }
+
+    return expanded;
+}
+
+//------------------------------------------------------------------------------
 //PART 4: PATH SEARCH
+//------------------------------------------------------------------------------
 
 char *search_path(const char *cmd) {
 
@@ -202,131 +306,9 @@ char *search_path(const char *cmd) {
     free(path_copy);
     return result;
 }
-
-//check if command should be run in background
-int is_background_job(tokenlist *tokens){
-    if(tokens->size > 0 && strcmp(tokens->items[tokens->size - 1], "&") == 0) {
-        //remove the & from cmd tokens
-        free(tokens->items[tokens->size - 1]);
-        tokens->items[tokens->size - 1] = NULL;
-        tokens->size--;
-        return 1;
-    }
-    return 0;
-}
-
-//build cmd line string from tokens
-char *build_command_line(tokenlist *tokens){
-    //calc total length needed
-    int total_len = 0;
-    for( int i = 0; i < tokens->size; i++) {
-        total_len += strlen(tokens->items[i]) + 1; //+1 for space
-    }
-
-    //malloc
-    char *cmd_line = malloc(total_len + 1); //+1 for null term
-    if (!cmd_line) return NULL;
-
-    //build string
-    cmd_line[0] = '\0';
-    for(int i = 0; i < tokens->size; i++) {
-        strcat(cmd_line, tokens->items[i]);
-        if (i < tokens->size - 1){
-            strcat(cmd_line, " ");
-        }
-    }
-    return cmd_line;
-}
-
-//build pipeline cmd line string
-char *build_pipeline_command_line(tokenlist **commands, int cmd_count) {
-    //calc total len needed
-    int total_len = 0;
-    for (int i = 0; i < cmd_count; i++){
-        for (int j = 0; j < commands[i]->size; j++){
-            total_len += strlen(commands[i]->items[j]) + 1;
-        }
-
-        if(i < cmd_count - 1){
-            total_len += 3; // " | "
-        }
-    }
-
-    //allocate mem
-    char *cmd_line = malloc(total_len + 1);
-    if(!cmd_line) return NULL;
-
-    //build string
-    cmd_line[0] = '\0';
-    for(int i = 0; i < cmd_count; i++){
-        for (int j = 0; j < commands[i]->size; j++){
-            strcat(cmd_line, commands[i]->items[j]);
-            if (j < commands[i]->size - 1){
-                strcat(cmd_line, " ");
-            }
-        }
-
-        if(i < cmd_count - 1){
-            strcat(cmd_line, " | ");
-        }
-    }
-
-    return cmd_line;
-}
-
-//add new background job to list
-int add_job(pid_t pid, char *cmd_line){
-    if(job_count >= MAX_JOBS){
-        fprintf(stderr, "Error: Maximum number of jobs reached\n");
-        return -1;
-    }
-
-    int job_id = next_job_id++;
-    jobs[job_count].job_id = job_id;
-    jobs[job_count].pid = pid;
-    jobs[job_count].command_line = strdup(cmd_line);
-    jobs[job_count].completed = 0;
-
-    job_count++;
-    return job_id;
-}
-
-//check all completed jobs for completion
-void check_completed_jobs() {
-    for (int i = 0; i < job_count; i++) {
-        if (!jobs[i].completed) {
-            int status;
-            pid_t result = waitpid(jobs[i].pid, &status, WNOHANG);
-            
-            if (result == jobs[i].pid) {
-                //job finished
-                jobs[i].completed = 1;
-                printf("[%d] + done %s\n", jobs[i].job_id, jobs[i].command_line);
-            }
-        }
-    }
-    
-    //cleanup completed jobs
-    cleanup_jobs();
-}
-
-//take completed jobs off array
-void cleanup_jobs() {
-    int i = 0;
-    while (i < job_count) {
-        if (jobs[i].completed) {
-            free(jobs[i].command_line);
-            
-            //shift jobs in array
-            for (int j = i; j < job_count - 1; j++) {
-                jobs[j] = jobs[j + 1];
-            }
-            job_count--;
-        } else {
-            i++;
-        }
-    }
-}
+//------------------------------------------------------------------------------
+//PART 5 : COMMAND EXECUTIONS
+//------------------------------------------------------------------------------
 
 //BIG EXECUTE COMMAND FUNCTION
 int execute_command(tokenlist *tokens) {
@@ -572,98 +554,9 @@ int handle_builtins(tokenlist *tokens) {
 
     return 0;
 }
-
-//PART 2: expand env var
-
-char *expand_env_var(char *token) {
-    if (token[0] == '$'){
-        char *env_value = getenv(token + 1);
-        if (env_value) {
-            return strdup(env_value);
-        }
-        return strdup(""); //return empty if not found
-    }
-    return strdup(token); // return og if not start w a $
-}
-
-tokenlist *expand_env_vars(tokenlist *original){
-    tokenlist *expanded = new_tokenlist();
-
-    for(int i = 0; i < original->size; i++){
-        char *expanded_token = expand_env_var(original->items[i]);
-        add_token(expanded, expanded_token);
-        free(expanded_token);    
-    }
-
-    return expanded;
-}
-
-//PART 3: TILDE EXPANSION
-
-//returns newly allocated string w tilde expanded
-char *expand_tilde(char *token){
-
-    if (token == NULL){
-        return NULL;
-    }
-
-    if(strcmp(token, "~") == 0 || strncmp(token, "~/", 2) == 0) {
-        //get HOME enviroment var
-        char *home = getenv("HOME");
-        if (home == NULL){
-            //return og token if home not set
-            return strdup(token);
-        }
-
-        if (strcmp(token, "~") == 0) {
-            //token is only ~ replace w home
-            return strdup(home);
-        } else {
-            //token starts w ~/ replace ~ w home thats it
-            // +1 to skip ~
-            char *path = token + 1;
-
-            char *result = malloc(strlen(home) + strlen(path) + 1);
-            if (result == NULL){
-                return NULL; //malloc failed
-            }
-
-            strcpy(result, home);
-            strcat(result, path);
-
-            return result;
-        }
-    }
-
-    return strdup(token); //no tilde to expand
-}
-
-tokenlist *expand_tildes(tokenlist *original) {
-    if (original == NULL) {
-        return NULL;
-    }
-
-    tokenlist *expanded = new_tokenlist();
-    if (expanded == NULL) {
-        return NULL;
-    }
-
-    for (int i = 0; i < original->size; i++) {
-        char *expanded_token = expand_tilde(original->items[i]);
-        if(expanded_token == NULL){
-            fprintf(stderr, "malloc fail in tilde expansion");
-            free_tokens(expanded);
-            return NULL;
-        }
-
-        add_token(expanded, expanded_token);
-        free(expanded_token);
-    }
-
-    return expanded;
-}
-
-//PART 6: I/O redirection
+//-----------------------------------------------------------------------------
+//PART 6 : I/O REDIRECTION
+//-----------------------------------------------------------------------------
 
 //processes redirecton operators in cmd tokens
 tokenlist *parse_redirections(tokenlist *tokens, char **input_file, char **output_file) {
@@ -781,52 +674,12 @@ void restore_redirections(int stdin_copy, int stdout_copy) {
     }
 }
 
-tokenlist **split_by_pipe(tokenlist *tokens, int *command_count){
-    int pipe_count = 0;
-    for(int i = 0; i < tokens->size; i++){
-        if (strcmp(tokens->items[i], "|") == 0) {
-            pipe_count++;
-        }
-    }
 
-    //number of commands is pipe_count + 1
-    *command_count = pipe_count + 1;
+//------------------------------------------------------------------------------
+//PART 7 : PIPING
+//------------------------------------------------------------------------------
 
-    //alloc array of tokenlist ptrs
-    tokenlist **commands = malloc(*command_count * sizeof(tokenlist *));
-    if(commands == NULL) {
-        perror("malloc");
-        return NULL;
-    }
-
-    //init each tokenlist
-    for (int i = 0; i < *command_count; i++) {
-        commands[i] = new_tokenlist();
-        if (commands[i] == NULL) {
-            //clean up if alloc fail
-            for(int j = 0; j < i; j++){
-                free_tokens(commands[j]);
-            }
-            free(commands);
-            return NULL;
-        }
-    }
-
-    //split the tokens into seperate commands
-    int current_cmd = 0;
-    for(int i = 0; i < tokens->size; i++){
-        if (strcmp(tokens->items[i], "|") == 0){
-            //move to next command on pipe symb
-            current_cmd++;
-        } else {
-            //add token to current cmd
-            add_token(commands[current_cmd], tokens->items[i]);
-        }
-    }
-
-    return commands;
-}
-
+//executes the pipeline with parameters 3 and 4 with background jobs
 void execute_pipeline(tokenlist **commands, int cmd_count, int is_background, char *original_command) {
     if (commands == NULL || cmd_count <= 0) {
         return;
@@ -1003,6 +856,187 @@ void execute_builtin_with_pipes(tokenlist *tokens, int pipe_out) {
     }
 }
 
+//splits the tokens by pipe for logic
+tokenlist **split_by_pipe(tokenlist *tokens, int *command_count){
+    int pipe_count = 0;
+    for(int i = 0; i < tokens->size; i++){
+        if (strcmp(tokens->items[i], "|") == 0) {
+            pipe_count++;
+        }
+    }
+
+    //number of commands is pipe_count + 1
+    *command_count = pipe_count + 1;
+
+    //alloc array of tokenlist ptrs
+    tokenlist **commands = malloc(*command_count * sizeof(tokenlist *));
+    if(commands == NULL) {
+        perror("malloc");
+        return NULL;
+    }
+
+    //init each tokenlist
+    for (int i = 0; i < *command_count; i++) {
+        commands[i] = new_tokenlist();
+        if (commands[i] == NULL) {
+            //clean up if alloc fail
+            for(int j = 0; j < i; j++){
+                free_tokens(commands[j]);
+            }
+            free(commands);
+            return NULL;
+        }
+    }
+
+    //split the tokens into seperate commands
+    int current_cmd = 0;
+    for(int i = 0; i < tokens->size; i++){
+        if (strcmp(tokens->items[i], "|") == 0){
+            //move to next command on pipe symb
+            current_cmd++;
+        } else {
+            //add token to current cmd
+            add_token(commands[current_cmd], tokens->items[i]);
+        }
+    }
+
+    return commands;
+}
+
+//-----------------------------------------------------------------------------
+//PART 8: BACKGROUND PROCESSING
+//-----------------------------------------------------------------------------
+
+//check if command should be run in background
+int is_background_job(tokenlist *tokens){
+    if(tokens->size > 0 && strcmp(tokens->items[tokens->size - 1], "&") == 0) {
+        //remove the & from cmd tokens
+        free(tokens->items[tokens->size - 1]);
+        tokens->items[tokens->size - 1] = NULL;
+        tokens->size--;
+        return 1;
+    }
+    return 0;
+}
+
+//build cmd line string from tokens
+char *build_command_line(tokenlist *tokens){
+    //calc total length needed
+    int total_len = 0;
+    for( int i = 0; i < tokens->size; i++) {
+        total_len += strlen(tokens->items[i]) + 1; //+1 for space
+    }
+
+    //malloc
+    char *cmd_line = malloc(total_len + 1); //+1 for null term
+    if (!cmd_line) return NULL;
+
+    //build string
+    cmd_line[0] = '\0';
+    for(int i = 0; i < tokens->size; i++) {
+        strcat(cmd_line, tokens->items[i]);
+        if (i < tokens->size - 1){
+            strcat(cmd_line, " ");
+        }
+    }
+    return cmd_line;
+}
+
+//build pipeline cmd line string
+char *build_pipeline_command_line(tokenlist **commands, int cmd_count) {
+    //calc total len needed
+    int total_len = 0;
+    for (int i = 0; i < cmd_count; i++){
+        for (int j = 0; j < commands[i]->size; j++){
+            total_len += strlen(commands[i]->items[j]) + 1;
+        }
+
+        if(i < cmd_count - 1){
+            total_len += 3; // " | "
+        }
+    }
+
+    //allocate mem
+    char *cmd_line = malloc(total_len + 1);
+    if(!cmd_line) return NULL;
+
+    //build string
+    cmd_line[0] = '\0';
+    for(int i = 0; i < cmd_count; i++){
+        for (int j = 0; j < commands[i]->size; j++){
+            strcat(cmd_line, commands[i]->items[j]);
+            if (j < commands[i]->size - 1){
+                strcat(cmd_line, " ");
+            }
+        }
+
+        if(i < cmd_count - 1){
+            strcat(cmd_line, " | ");
+        }
+    }
+
+    return cmd_line;
+}
+
+//add new background job to list
+int add_job(pid_t pid, char *cmd_line){
+    if(job_count >= MAX_JOBS){
+        fprintf(stderr, "Error: Maximum number of jobs reached\n");
+        return -1;
+    }
+
+    int job_id = next_job_id++;
+    jobs[job_count].job_id = job_id;
+    jobs[job_count].pid = pid;
+    jobs[job_count].command_line = strdup(cmd_line);
+    jobs[job_count].completed = 0;
+
+    job_count++;
+    return job_id;
+}
+
+//check all completed jobs for completion
+void check_completed_jobs() {
+    for (int i = 0; i < job_count; i++) {
+        if (!jobs[i].completed) {
+            int status;
+            pid_t result = waitpid(jobs[i].pid, &status, WNOHANG);
+            
+            if (result == jobs[i].pid) {
+                //job finished
+                jobs[i].completed = 1;
+                printf("[%d] + done %s\n", jobs[i].job_id, jobs[i].command_line);
+            }
+        }
+    }
+    
+    //cleanup completed jobs
+    cleanup_jobs();
+}
+
+//take completed jobs off array
+void cleanup_jobs() {
+    int i = 0;
+    while (i < job_count) {
+        if (jobs[i].completed) {
+            free(jobs[i].command_line);
+            
+            //shift jobs in array
+            for (int j = i; j < job_count - 1; j++) {
+                jobs[j] = jobs[j + 1];
+            }
+            job_count--;
+        } else {
+            i++;
+        }
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+// ADD TO HISTORY PROGRAMS
+//-----------------------------------------------------------------------------
+
 void add_to_history(char *cmd_line) {
     if(!cmd_line || strlen(cmd_line) == 0) {
         return;
@@ -1020,3 +1054,5 @@ void add_to_history(char *cmd_line) {
     //add new command to history
     command_history[history_count++] = strdup(cmd_line);
 }
+
+//-----------------------------------------------------------------------------
