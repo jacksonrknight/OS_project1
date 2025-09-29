@@ -130,7 +130,7 @@ Document in-person meetings, their purpose, and what was discussed.
 - **Bug 2**: This is bug 2.
 - **Bug 3**: This is bug 3.
 
-## Extra Credit
+## Extra Credit - All three extra credit works...
 - **Extra Credit 1**: Support unlimited number of pipes
 - **Extra Credit 2**: Support piping and I/O redirection in a single command
 - **Extra Credit 3**: Shell-ception: Execute your shell from within a running shell process repeatedly
